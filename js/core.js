@@ -1,7 +1,7 @@
 'use strict';
 // Keep the original key so existing demo records survive the rename.
 const KEY = 'apex_rms_interactive_demo_v1';
-const navItems = [['dashboard','Dashboard'],['workload','My work'],['daily','Daily attention'],['incidents','Incidents'],['cases','Cases'],['arrests','Arrests'],['people','People'],['vehicles','Vehicles'],['evidence','Evidence'],['warrants','Warrants'],['review','Review queue'],['tasks','Tasks'],['analytics','Analytics'],['audit','Audit history'],['settings','Demo settings']];
+const navItems = [['dashboard','Dashboard'],['workload','My work'],['daily','Daily attention'],['incidents','Incidents'],['cases','Cases'],['arrests','Arrests'],['people','People'],['vehicles','Vehicles'],['evidence','Evidence'],['warrants','Warrants'],['review','Review queue'],['filing','Records queue'],['tasks','Tasks'],['analytics','Analytics'],['audit','Audit history'],['settings','Demo settings']];
 const initialData = {
   version: 1,
   incidents: [
@@ -44,7 +44,7 @@ const find = (collection,id) => db[collection].find(item => item.id === id);
 const label = (collection,id,field='name') => find(collection,id)?.[field] || id;
 const today = () => {const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 dailyDate = today();
-const actor = () => role==='Supervisor'?supervisorIdentity:({Officer:'Officer J. Miller',Detective:'Detective A. Chen',Administrator:'Administrator'})[role];
+const actor = () => role==='Supervisor'?supervisorIdentity:({Officer:'Officer J. Miller',Detective:'Detective A. Chen',Records:'Records clerk',Administrator:'Administrator'})[role];
 const supervisorFor = officer => {const assignments=db.supervision||defaultSupervision;return Object.prototype.hasOwnProperty.call(assignments,officer)?assignments[officer]:''};
 const demoPeople = ['Officer J. Miller','Detective A. Chen','Supervisor R. Patel','Administrator'];
 const assigneeOptions = (selected='') => opts([...new Set([...demoPeople,...(selected?[selected]:[])])].map(id=>({id,text:id})),selected,'Unassigned');
@@ -71,7 +71,7 @@ const reportSections = {
   {id:'administration',title:'Arrest administration',fields:[['arrestingOfficer','Arresting officer name'],['officerId','Officer ID'],['supervisor','Supervisor name'],['supervisorId','Supervisor ID']]},
  ]
 };
-const attachmentCategories = ['Other','Narrative','Follow-up','Statement','Deposition','Court document','Photograph'];
+const attachmentCategories = ['Other','Narrative','Follow-up','Statement','Deposition','Court document','Photograph','MV-104'];
 const maxAttachmentBytes = 512*1024;
 const maxTotalAttachmentBytes = 1024*1024;
 const incidentSummary = id => {
@@ -111,5 +111,5 @@ function indexSearch(kind,title,placeholder,items,renderer){
 function opts(items,selected='',placeholder='Select...'){return `<option value="">${esc(placeholder)}</option>`+items.map(x=>`<option value="${esc(x.id)}" ${x.id===selected?'selected':''}>${esc(x.text)}</option>`).join('')}
 function show(page,id=null,query=''){if(page==='search'&&(view.page!=='search'||view.query!==query))for(const key of Object.keys(pages))if(key.startsWith('search-'))delete pages[key];view={page,id,query};render();window.scrollTo(0,0)}
 function renderNav(){$('nav').innerHTML=navItems.map(([id,text])=>`<button data-action="navigate" data-page="${id}" class="${id==='arrests'?'subnav ':''}${view.page===id||(id==='arrests'&&view.page==='arrest')?'active':''}" ${view.page===id||(id==='arrests'&&view.page==='arrest')?'aria-current="page"':''}>${esc(text)}</button>`).join('')}
-function render(){displayedSequences={};renderNav();const views={dashboard,workload,daily,incidents,incident,cases,case:caseDetail,arrests,arrest,people,person,vehicles,vehicle,evidence,'evidence-detail':evidenceDetail,warrants,warrant,review,tasks,analytics,audit,settings,search};$('app').innerHTML=views[view.page]();$('role').value=role;$('supervisor-picker').hidden=role!=='Supervisor';$('supervisor').value=supervisorIdentity}
+function render(){displayedSequences={};renderNav();const views={dashboard,workload,daily,incidents,incident,cases,case:caseDetail,arrests,arrest,people,person,vehicles,vehicle,evidence,'evidence-detail':evidenceDetail,warrants,warrant,review,filing,tasks,analytics,audit,settings,search};$('app').innerHTML=views[view.page]();if(view.page==='arrest'){const a=find('arrests',view.id);if(a)$('app').insertAdjacentHTML('beforeend',panel('All linked cases',`<div class="list">${arrestCaseIds(a).map(id=>`<div class="list-item">${link('case',id,id)} · Incidents: ${find('cases',id).incidentIds.map(incidentId=>link('incident',incidentId,incidentId)).join(', ')}</div>`).join('')}</div>`))}$('role').value=role;$('supervisor-picker').hidden=role!=='Supervisor';$('supervisor').value=supervisorIdentity}
 function listEvents(items){return items.length?`<div class="list timeline">${items.map(x=>`<div class="list-item"><div>${esc(x.action)}</div><div class="muted small">${esc(x.actor)} &middot; ${esc(stamp(x.at))}</div></div>`).join('')}</div>`:'<p class="empty">No activity yet.</p>'}

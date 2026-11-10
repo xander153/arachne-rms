@@ -21,6 +21,7 @@ function confirmDuplicates(title,f){
 function searchBeforeCreate(kind,incidentId){
  const config=duplicateTypes[kind];
  if(!config){flash('Unknown record type.',true);return}
+ if(incidentId&&!requireIncidentEdit(incidentId))return;
  openDialog('Search for '+config.label,`<p class="muted">Search existing fictional records before creating a new one. Similar names or descriptions do not prove records are identical.</p><div class="fields">${field('query','Search '+config.label,'','search')}</div><div id="duplicate-results" aria-live="polite"></div>`,'Search',f=>{
   const query=String(f.get('query')||'').trim().toLowerCase();if(!query){flash('Enter a search term.',true);return}
   const results=db[kind].filter(item=>config.fields(item).some(value=>String(value||'').toLowerCase().includes(query)));
@@ -34,6 +35,7 @@ function selectExisting(kind,id,incidentId){
  const item=find(kind,id),incident=incidentId?find('incidents',incidentId):null;
  if(!item||(incidentId&&!incident)){flash('The selected record is no longer available.',true);return}
  if(!incident||kind==='evidence'){closeDialog();show(duplicateTypes[kind].page,id);return}
+ if(!requireIncidentEdit(incidentId)||(kind==='cases'&&!requireCaseEdit(id)))return;
  if(kind==='people'){linkPerson(incidentId,id);return}
  if(kind==='cases'&&!canViewInvestigation(item)){flash('This investigation is unavailable for the current demo role.',true);return}
  if((kind==='vehicles'?incident.vehicles.includes(id):item.incidentIds.includes(incidentId))){flash('This record is already linked to the incident.',true);return}

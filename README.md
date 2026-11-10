@@ -20,6 +20,27 @@ Matching is a limited aid, not identity verification or a guarantee against
 duplicates. Evidence has one linked incident in this demo; it cannot be
 attached to a second incident.
 
+## Case review workflow
+
+Incident dispositions and case dispositions are separate. No-review incidents
+remain editable, including for a later fictional MV-104 attachment. Link people
+and vehicles to an incident, then set the owner and driver on each vehicle.
+
+Set a case disposition and submit it to a selected shift supervisor. Any demo
+supervisor may approve or return it. Approved cases go to the Records queue;
+the Records role can mark them filed. A supervisor can reassign an approved case
+for follow-up, after which it needs review again. Review and filing history is
+retained. A case pending review or approved is not editable. An incident is
+shown as approved when all linked cases are approved; changes to a shared
+incident are blocked while any linked case is pending or approved. Return or
+reassign all affected cases before editing it. Arrest records can be linked to
+multiple cases and remain independently editable.
+
+Review statuses and comments on incidents from older snapshots remain legacy
+information and are not converted into case approvals. These features simulate
+workflow only: roles and locks do not provide authentication or security.
+Case dispositions currently cover the examples, not the full NIBRS list.
+
 ## Running and publishing
 
 Open `index.html` in a browser, or serve this directory with any static file
@@ -47,6 +68,7 @@ and import controls to transfer fictional snapshots if needed.
 - `js/dialogs.js`: shared dialog and form helpers.
 - `js/duplicate-search.js`: search-first creation, linking, and duplicate warnings.
 - `js/laws.js`: optional NY Senate law search and report-field autofill.
+- `js/case-review.js`: case review, filing, follow-up, and shared-record rules.
 - `js/reports.js`: report sections and attachments.
 - `js/workflows.js`: record editing and review workflows.
 - `js/data.js`: sample generation, snapshot validation, and loading.

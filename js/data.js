@@ -40,6 +40,10 @@ function validSnapshot(data){
  if(!data.incidents.every(x=>x.reviewAssignee===undefined||x.reviewAssignee===''||supervisors.includes(x.reviewAssignee)))return false;
  if(data.supervision!==undefined&&(!object(data.supervision)||!Object.entries(data.supervision).every(([officer,supervisor])=>officer.trim()&&supervisors.includes(supervisor))))return false;
  if(!data.cases.every(x=>(x.openedDate===undefined||typeof x.openedDate==='string')&&(x.access===undefined||['Open','Restricted'].includes(x.access))&&(x.accessUsers===undefined||ids(x.accessUsers))))return false;
+ if(!data.incidents.every(x=>x.disposition===undefined||typeof x.disposition==='string'))return false;
+ if(!data.incidents.every(x=>x.vehicleParticipants===undefined||(Array.isArray(x.vehicleParticipants)&&x.vehicleParticipants.every(p=>str(p,['vehicleId','ownerId','driverId'])&&x.vehicles.includes(p.vehicleId)&&(!p.ownerId||x.people.some(a=>a.id===p.ownerId))&&(!p.driverId||x.people.some(a=>a.id===p.driverId)))&&new Set(x.vehicleParticipants.map(p=>p.vehicleId)).size===x.vehicleParticipants.length)))return false;
+ if(!data.cases.every(x=>(x.disposition===undefined||typeof x.disposition==='string')&&(x.reviewState===undefined||['Not submitted','Pending review','Returned','Approved','Follow-up'].includes(x.reviewState))&&(x.reviewAssignee===undefined||supervisors.includes(x.reviewAssignee))&&(x.filingStatus===undefined||['','Ready for filing','Filed'].includes(x.filingStatus))&&(x.reviewHistory===undefined||(Array.isArray(x.reviewHistory)&&x.reviewHistory.every(h=>str(h,['decision','comment','actor','at']))))))return false;
+ if(!arrests.every(x=>x.caseIds===undefined||(ids(x.caseIds)&&x.caseIds.includes(x.caseId)&&new Set(x.caseIds).size===x.caseIds.length)))return false;
  if(!arrests.every(x=>(x.assignee===undefined||typeof x.assignee==='string')&&(x.workStatus===undefined||['Open','Completed'].includes(x.workStatus))))return false;
  const validReport=(item,kind)=>item.report===undefined||(object(item.report)&&Object.entries(item.report).every(([key,value])=>{
   const section=reportSections[kind].find(s=>s.id===key);if(!section)return false;
@@ -47,15 +51,15 @@ function validSnapshot(data){
   return section.multiple?Array.isArray(value)&&value.every(validEntry):validEntry(value);
  }));
  const validAttachment=a=>{
-  if(!str(a,['name','type','category','author','at','data'])||!a.name||!['application/pdf','image/png','image/jpeg','text/plain'].includes(a.type)||!attachmentCategories.includes(a.category)||!Number.isInteger(a.size)||a.size<1||a.size>maxAttachmentBytes||(a.category==='Photograph'&&!['image/png','image/jpeg'].includes(a.type))||a.data.length!==4*Math.ceil(a.size/3)||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(a.data))return false;
+  if(!str(a,['name','type','category','author','at','data'])||!a.name||!['application/pdf','image/png','image/jpeg','text/plain'].includes(a.type)||!attachmentCategories.includes(a.category)||!Number.isInteger(a.size)||a.size<1||a.size>maxAttachmentBytes||(a.category==='Photograph'&&!['image/png','image/jpeg'].includes(a.type))||(a.category==='MV-104'&&a.type!=='application/pdf')||a.data.length!==4*Math.ceil(a.size/3)||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(a.data))return false;
   try{return atob(a.data).length===a.size}catch(error){return false}
  };
  if(!data.cases.every(x=>validReport(x,'case'))||!arrests.every(x=>validReport(x,'arrest')))return false;
- const reportRecords=[...data.cases,...arrests];
+ const reportRecords=[...data.incidents,...data.cases,...arrests];
  if(!reportRecords.every(x=>x.attachments===undefined||(Array.isArray(x.attachments)&&x.attachments.every(validAttachment))))return false;
  if(reportRecords.flatMap(x=>x.attachments||[]).reduce((sum,a)=>sum+a.size,0)>maxTotalAttachmentBytes)return false;
  for(const key of arrays.filter(x=>x!=='audit'))if(new Set(data[key].map(x=>x.id)).size!==data[key].length)return false;
  const has=(key,id)=>data[key].some(x=>x.id===id);
- return data.incidents.every(x=>x.people.every(p=>has('people',p.id))&&x.vehicles.every(id=>has('vehicles',id)))&&data.vehicles.every(x=>x.incidentIds.every(id=>has('incidents',id)))&&data.cases.every(x=>x.incidentIds.every(id=>has('incidents',id)))&&data.evidence.every(x=>has('incidents',x.incidentId))&&data.warrants.every(x=>has('people',x.personId))&&data.tasks.every(x=>!x.caseId||has('cases',x.caseId))&&arrests.every(x=>has('cases',x.caseId)&&has('people',x.personId));
+ return data.incidents.every(x=>x.people.every(p=>has('people',p.id))&&x.vehicles.every(id=>has('vehicles',id)))&&data.vehicles.every(x=>x.incidentIds.every(id=>has('incidents',id)))&&data.cases.every(x=>x.incidentIds.every(id=>has('incidents',id)))&&data.evidence.every(x=>has('incidents',x.incidentId))&&data.warrants.every(x=>has('people',x.personId))&&data.tasks.every(x=>!x.caseId||has('cases',x.caseId))&&arrests.every(x=>has('cases',x.caseId)&&(!x.caseIds||x.caseIds.every(id=>has('cases',id)))&&has('people',x.personId));
 }
 function load(){try{const raw=localStorage.getItem(KEY);if(!raw){db=copy(initialData);persist();return}const parsed=JSON.parse(raw);if(!validSnapshot(parsed))throw new Error('Stored data is invalid');db=parsed;if(db.arrests===undefined)db.arrests=[]}catch(error){db=copy(initialData);flash('Could not load stored demo data: '+error.message+'. Sample data is shown without replacing storage.',true)}}
