@@ -1,0 +1,7 @@
+'use strict';
+function openDialog(title,body,submitLabel,onSubmit){$('dialog').innerHTML=`<form id="dialog-form"><div class="row between"><h2 id="modal-title">${esc(title)}</h2><button type="button" class="secondary" data-action="close-modal" aria-label="Close dialog">×</button></div>${body}<div class="actions"><button type="submit" class="primary">${esc(submitLabel)}</button><button type="button" class="secondary" data-action="close-modal">Cancel</button></div></form>`;$('modal').hidden=false;$('dialog-form').addEventListener('submit',e=>{e.preventDefault();onSubmit(new FormData(e.currentTarget))});$('dialog').querySelector('input,select,textarea,button').focus()}
+function closeDialog(){$('modal').hidden=true;$('dialog').innerHTML=''}
+function field(name,title,value='',type='text',required=true){return `<label>${esc(title)}<input name="${esc(name)}" type="${type}" value="${esc(value)}" ${required?'required':''}></label>`}
+function selectField(name,title,options,required=true){return `<label>${esc(title)}<select name="${esc(name)}" ${required?'required':''}>${options}</select></label>`}
+function textField(name,title,value='',required=true){return `<label class="wide">${esc(title)}<textarea name="${esc(name)}" ${required?'required':''}>${esc(value)}</textarea></label>`}
+function done(message,page,id){closeDialog();if(persist()){show(page,id);flash(message)}}
