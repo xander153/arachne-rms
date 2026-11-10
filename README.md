@@ -36,6 +36,23 @@ incident are blocked while any linked case is pending or approved. Return or
 reassign all affected cases before editing it. Arrest records can be linked to
 multiple cases and remain independently editable.
 
+Cases show live people, vehicles (including owner and driver), evidence,
+narrative, supplements, and attachments from their linked incidents. Arrests
+show live information from every linked case and each distinct incident, not
+independent copies. Case-specific report fields and attachments respect the
+demo's restricted-case visibility rules. Changes to shared profiles and
+evidence remain visible; this is not a frozen historical snapshot.
+
+On an arrest, use **Assign offenses** for each editable linked case to select
+the case offenses attributed to that arrestee. Multiple offenses can be
+assigned to an arrest, and an offense can be assigned to multiple arrests.
+Assignments do not automatically create arrest charges; existing charges are
+independent and must be entered or updated separately. Assignments cannot be
+changed while the case is pending review or approved. Remove an offense from
+all arrests before deleting it, and remove all assignments before changing an
+arrest's person. Older snapshots remain compatible; IDs are added to existing
+offenses when they are first assigned.
+
 Review statuses and comments on incidents from older snapshots remain legacy
 information and are not converted into case approvals. These features simulate
 workflow only: roles and locks do not provide authentication or security.

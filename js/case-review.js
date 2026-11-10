@@ -43,6 +43,24 @@ function linkArrestToCase(caseId){
   const before=copy(db);a.caseIds=[...arrestCaseIds(a),caseId];record('Linked arrest '+a.id+' to case '+caseId);if(!persist()){db=before;return}closeDialog();show('case',caseId);flash('Arrest linked.')
  })
 }
+function assignCaseOffenses(arrestId,caseId){
+ const arrest=find('arrests',arrestId),c=find('cases',caseId);
+ if(!arrest||!arrestCaseIds(arrest).includes(caseId)||!requireCaseEdit(caseId))return;
+ const offenses=c.report?.offenses||[];
+ if(!offenses.length){flash('Add offenses to this case before assigning them to an arrest.',true);return}
+ const selected=new Set((arrest.offenseLinks||[]).filter(ref=>ref.caseId===caseId).map(ref=>ref.offenseId));
+ openDialog('Assign offenses to '+arrestId,`<p class="muted">Select only offenses attributed to ${esc(label('people',arrest.personId))} in ${esc(caseId)}. This does not create arrest charges.</p><div class="list">${offenses.map((offense,index)=>`<label class="list-item"><input type="checkbox" name="offense" value="${index}" ${offense.offenseId&&selected.has(offense.offenseId)?'checked':''}> ${esc(offense.name||'Unnamed offense')} · ${esc([offense.law,offense.section,offense.subsection].filter(Boolean).join(' ')||'No statute recorded')}</label>`).join('')}</div>`,'Save assignments',f=>{
+  const current=find('arrests',arrestId),caseRecord=find('cases',caseId);
+  if(!current||!caseRecord||!arrestCaseIds(current).includes(caseId)||!requireCaseEdit(caseId))return;
+  const entries=caseRecord.report?.offenses||[],indexes=f.getAll('offense').map(value=>Number(value));
+  if(indexes.some(n=>!Number.isInteger(n)||n<0||n>=entries.length)||new Set(indexes).size!==indexes.length){flash('Invalid offense selection.',true);return}
+  const before=copy(db),refs=[];
+  for(const n of indexes){const offense=entries[n];if(!offense.offenseId)offense.offenseId=nextId('OFF-',entries.filter(o=>o.offenseId).map(o=>({id:o.offenseId})));refs.push({caseId,offenseId:offense.offenseId})}
+  current.offenseLinks=[...(current.offenseLinks||[]).filter(ref=>ref.caseId!==caseId),...refs];
+  record('Updated case offense assignments for arrest '+arrestId+' and case '+caseId);
+  if(!persist()){db=before;return}closeDialog();show('arrest',arrestId);flash('Offense assignments saved.')
+ })
+}
 function vehicleParticipants(incidentId,vehicleId){
  const incident=find('incidents',incidentId),vehicle=find('vehicles',vehicleId);
  if(!incident||!vehicle||!incident.vehicles.includes(vehicleId)||!requireIncidentEdit(incidentId))return;

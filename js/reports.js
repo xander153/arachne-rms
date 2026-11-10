@@ -10,8 +10,9 @@ function reportView(kind,item,editable=true){
   const entries=section.multiple?(report[section.id]||[]):[report[section.id]||{}];
   const rows=entries.map((entry,index)=>{
    const values=section.fields.filter(([key])=>entry[key]).map(([key,title,type])=>`<div class="list-item"><strong>${esc(title)}:</strong> ${type==='person'?link('person',entry[key],label('people',entry[key])):esc(entry[key])}</div>`).join('');
+   const assigned=kind==='case'&&section.id==='offenses'&&entry.offenseId?db.arrests.filter(a=>(a.offenseLinks||[]).some(ref=>ref.caseId===item.id&&ref.offenseId===entry.offenseId)).map(a=>link('arrest',a.id,a.id+' · '+label('people',a.personId))).join(', '):'';
    const controls=editable&&section.multiple?`<div class="actions no-print">${btn('edit-report-entry','Edit',`data-kind="${kind}" data-id="${esc(item.id)}" data-section="${section.id}" data-index="${index}"`)}${btn('delete-report-entry','Remove',`data-kind="${kind}" data-id="${esc(item.id)}" data-section="${section.id}" data-index="${index}"`)}</div>`:'';
-   return `<div class="list-item">${section.multiple?`<strong>Entry ${index+1}</strong>`:''}<div class="list">${values||'<div class="muted">No values recorded.</div>'}</div>${controls}</div>`;
+   return `<div class="list-item">${section.multiple?`<strong>Entry ${index+1}</strong>`:''}<div class="list">${values||'<div class="muted">No values recorded.</div>'}${assigned?`<div class="list-item"><strong>Assigned arrests:</strong> ${assigned}</div>`:''}</div>${controls}</div>`;
   }).join('')||'<p class="empty">No entries recorded.</p>';
   const action=editable?btn('edit-report-entry',section.multiple?'Add entry':'Edit section',`data-kind="${kind}" data-id="${esc(item.id)}" data-section="${section.id}"`):'';
   return panel(section.title,`<div class="list">${rows}</div>`,action);
@@ -32,6 +33,7 @@ function reportEntryForm(kind,id,sectionId,index){
   if(section.multiple&&!Object.values(values).some(Boolean)){flash('Enter at least one value.',true);return}
   if(values.person&&!find('people',values.person)){flash('Select a valid demo person.',true);return}
   if(sectionId==='header'&&values.occurredFrom&&values.occurredTo&&values.occurredFrom>values.occurredTo){flash('Occurred to must not be before occurred from.',true);return}
+  if(kind==='case'&&sectionId==='offenses'&&entry.offenseId)values.offenseId=entry.offenseId;
   const before=copy(db),target=find(kind==='case'?'cases':'arrests',id);target.report=target.report||{};
   if(section.multiple){target.report[sectionId]=target.report[sectionId]||[];if(editing)target.report[sectionId][Number(index)]=values;else target.report[sectionId].push(values)}else target.report[sectionId]=values;
   record('Updated '+kind+' '+id+' report section '+section.title);
@@ -43,6 +45,7 @@ function deleteReportEntry(kind,id,sectionId,index){
  const item=reportRecord(kind,id),section=reportSections[kind]?.find(s=>s.id===sectionId&&s.multiple),n=Number(index);
  if(!item||!section||!Number.isInteger(n)||n<0||!item.report?.[sectionId]?.[n]){flash('Report entry not found.',true);return}
  if(kind==='case'&&!requireCaseEdit(id))return;
+ if(kind==='case'&&sectionId==='offenses'){const offense=item.report[sectionId][n];if(offense.offenseId&&db.arrests.some(a=>(a.offenseLinks||[]).some(ref=>ref.caseId===id&&ref.offenseId===offense.offenseId))){flash('Remove this offense from all linked arrests before deleting it.',true);return}}
  if(!confirm('Remove this report entry?'))return;
  const before=copy(db);item.report[sectionId].splice(n,1);record('Removed '+kind+' '+id+' report entry from '+section.title);
  if(!persist()){db=before;return}render();flash('Report entry removed.')

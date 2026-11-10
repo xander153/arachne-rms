@@ -15,6 +15,7 @@ document.addEventListener('click',e=>{
  else if(action==='case-reassign'){e.stopImmediatePropagation();reassignCase(id)}
  else if(action==='file-case'){e.stopImmediatePropagation();fileCase(id)}
  else if(action==='link-arrest'){e.stopImmediatePropagation();linkArrestToCase(id)}
+ else if(action==='assign-case-offenses'){e.stopImmediatePropagation();assignCaseOffenses(id,b.dataset.caseId)}
  else if(action==='vehicle-participants'){e.stopImmediatePropagation();vehicleParticipants(id,b.dataset.vehicle)}
 },true);
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action,id=b.dataset.id;

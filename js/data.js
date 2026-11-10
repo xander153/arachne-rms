@@ -47,7 +47,7 @@ function validSnapshot(data){
  if(!arrests.every(x=>(x.assignee===undefined||typeof x.assignee==='string')&&(x.workStatus===undefined||['Open','Completed'].includes(x.workStatus))))return false;
  const validReport=(item,kind)=>item.report===undefined||(object(item.report)&&Object.entries(item.report).every(([key,value])=>{
   const section=reportSections[kind].find(s=>s.id===key);if(!section)return false;
-  const validEntry=entry=>object(entry)&&Object.entries(entry).every(([field,value])=>section.fields.some(f=>f[0]===field)&&typeof value==='string')&&(!entry.person||data.people.some(p=>p.id===entry.person));
+  const validEntry=entry=>object(entry)&&Object.entries(entry).every(([field,value])=>(section.fields.some(f=>f[0]===field)||(kind==='case'&&key==='offenses'&&field==='offenseId'&&value))&&typeof value==='string')&&(!entry.person||data.people.some(p=>p.id===entry.person));
   return section.multiple?Array.isArray(value)&&value.every(validEntry):validEntry(value);
  }));
  const validAttachment=a=>{
@@ -55,6 +55,8 @@ function validSnapshot(data){
   try{return atob(a.data).length===a.size}catch(error){return false}
  };
  if(!data.cases.every(x=>validReport(x,'case'))||!arrests.every(x=>validReport(x,'arrest')))return false;
+ if(!data.cases.every(c=>{const ids=(c.report?.offenses||[]).map(o=>o.offenseId).filter(Boolean);return new Set(ids).size===ids.length}))return false;
+ if(!arrests.every(a=>a.offenseLinks===undefined||(Array.isArray(a.offenseLinks)&&a.offenseLinks.every(ref=>str(ref,['caseId','offenseId'])&&(a.caseIds||[a.caseId]).includes(ref.caseId)&&data.cases.some(c=>c.id===ref.caseId&&(c.report?.offenses||[]).some(o=>o.offenseId===ref.offenseId)))&&new Set(a.offenseLinks.map(ref=>JSON.stringify([ref.caseId,ref.offenseId]))).size===a.offenseLinks.length)))return false;
  const reportRecords=[...data.incidents,...data.cases,...arrests];
  if(!reportRecords.every(x=>x.attachments===undefined||(Array.isArray(x.attachments)&&x.attachments.every(validAttachment))))return false;
  if(reportRecords.flatMap(x=>x.attachments||[]).reduce((sum,a)=>sum+a.size,0)>maxTotalAttachmentBytes)return false;
