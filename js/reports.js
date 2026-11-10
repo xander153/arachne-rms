@@ -24,7 +24,8 @@ function reportEntryForm(kind,id,sectionId,index){
  const entry=section.multiple?(editing?(entries||[])[Number(index)]:{}):(entries||{});
  if(!entry){flash('Report entry not found.',true);return}
  const fields=section.fields.map(([key,title,type])=>type==='textarea'?textField(key,title,entry[key]||'',false):type==='person'?selectField(key,title,opts(db.people.map(p=>({id:p.id,text:p.name+' · '+p.id})),entry[key]||'','None'),false):field(key,title,entry[key]||'',type||'text',false)).join('');
- openDialog((editing?'Edit ':section.multiple?'Add ':'Edit ')+section.title,`<div class="fields">${fields}</div><p class="muted small">Fictional data only. Linked person fields show current person information; other fields are specific to this report.</p>`,'Save section',f=>{
+ const lawLookup=(kind==='case'&&sectionId==='offenses')||(kind==='arrest'&&sectionId==='charges');
+ openDialog((editing?'Edit ':section.multiple?'Add ':'Edit ')+section.title,`${lawLookup?lawLookupMarkup():''}<div class="fields">${fields}</div><p class="muted small">Fictional data only. Linked person fields show current person information; other fields are specific to this report.</p>`,'Save section',f=>{
   if(!reportRecord(kind,id))return;
   const values=Object.fromEntries(section.fields.map(([key])=>[key,String(f.get(key)||'').trim()]));
   if(section.multiple&&!Object.values(values).some(Boolean)){flash('Enter at least one value.',true);return}
@@ -34,7 +35,8 @@ function reportEntryForm(kind,id,sectionId,index){
   if(section.multiple){target.report[sectionId]=target.report[sectionId]||[];if(editing)target.report[sectionId][Number(index)]=values;else target.report[sectionId].push(values)}else target.report[sectionId]=values;
   record('Updated '+kind+' '+id+' report section '+section.title);
   if(!persist()){db=before;return}closeDialog();show(kind,id);flash('Report section saved.')
- })
+ });
+ if(lawLookup)setupLawLookup();
 }
 function deleteReportEntry(kind,id,sectionId,index){
  const item=reportRecord(kind,id),section=reportSections[kind]?.find(s=>s.id===sectionId&&s.multiple),n=Number(index);

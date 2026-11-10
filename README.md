@@ -1,8 +1,24 @@
 # Arachne RMS demo
 
 This is a static, browser-only demonstration using fictional data. It has no
-backend, database, authentication, or external integrations. Do not enter real
+backend, database, or authentication. Do not enter real
 records; browser storage is not encrypted or suitable for sensitive data.
+
+The optional NY Senate law lookup sends only the search term, optional law ID,
+and the user's API key to the NY Senate Open Legislation API. Obtain a free key
+from https://legislation.nysenate.gov. The key stays in page memory until
+reload, is not included in demo exports, and is visible to the browser and
+network tools; no shared key can be kept secret in a static site. The API puts
+the key in the request URL, so avoid sharing request logs. Search only
+for statutes, never people or case information. The API can be unavailable or
+return law text that is not applicable on the incident date. Verify sources,
+dates, and all report fields independently; manual entry remains available.
+
+Before creating people, vehicles, cases, or evidence, search existing records.
+Possible duplicates are checked again at save time and may be overridden.
+Matching is a limited aid, not identity verification or a guarantee against
+duplicates. Evidence has one linked incident in this demo; it cannot be
+attached to a second incident.
 
 ## Running and publishing
 
@@ -29,6 +45,8 @@ and import controls to transfer fictional snapshots if needed.
 - `js/pages-management.js`: review, tasks, analytics, audit, settings, and
   global search views.
 - `js/dialogs.js`: shared dialog and form helpers.
+- `js/duplicate-search.js`: search-first creation, linking, and duplicate warnings.
+- `js/laws.js`: optional NY Senate law search and report-field autofill.
 - `js/reports.js`: report sections and attachments.
 - `js/workflows.js`: record editing and review workflows.
 - `js/data.js`: sample generation, snapshot validation, and loading.
