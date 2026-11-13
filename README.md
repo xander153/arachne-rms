@@ -1,4 +1,4 @@
-# Arachne RMS demo
+# Arakne RMS demo
 
 This is a static, browser-only demonstration using fictional data. It has no
 backend, database, or authentication. Do not enter real
