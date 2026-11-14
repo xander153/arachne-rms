@@ -29,6 +29,9 @@ create case** on it: the dialog lists the 10 most recent cases, has a search
 box for older ones, and a **Create new case** button. Creating a case needs no
 form. It is assigned to its creator, status Open, disposition Investigation
 Pending, with the incident type as its title, and its screen opens next.
+An incident with no case shows **No case linked**, not a review status. Linked
+cases show their current review status; differing statuses show **Mixed
+statuses**, with each case's status on the incident.
 
 When a case is created (or an incident is linked to an existing case) the case
 takes over the incident. The incident's people, vehicles, property/evidence,
@@ -47,6 +50,9 @@ associated persons, offense context and the selected offenses (as charges and
 offense assignments). These are copied once as starting values and can then be
 edited on the arrest. Case attachments, report fields and incident information
 remain live references on the arrest, in collapsible sections.
+Arrest workflow history records the initial assignment and later assignment or
+work-status changes. Cases retain assignment, review and filing history.
+These are demo records, not tamper-resistant audit logs.
 
 ## Case review workflow
 
@@ -59,8 +65,7 @@ selected shift supervisor. Any demo
 supervisor may approve or return it. Approved cases go to the Records queue;
 the Records role can mark them filed. A supervisor can reassign an approved case
 for follow-up, after which it needs review again. Review and filing history is
-retained. A case pending review or approved is not editable. An incident is
-shown as approved when all linked cases are approved; changes to a shared
+retained. A case pending review or approved is not editable. Changes to a shared
 incident are blocked while any linked case is pending or approved. Return or
 reassign all affected cases before editing it. Arrest records can be linked to
 multiple cases and remain independently editable.
@@ -82,8 +87,8 @@ all arrests before deleting it, and remove all assignments before changing an
 arrest's person. Older snapshots remain compatible; IDs are added to existing
 offenses when they are first assigned.
 
-Review statuses and comments on incidents from older snapshots remain legacy
-information and are not converted into case approvals. These features simulate
+Older snapshot incident review fields are retained for compatibility but are
+not displayed or converted into case reviews. These features simulate
 workflow only: roles and locks do not provide authentication or security.
 Case dispositions currently cover the examples, not the full NIBRS list.
 

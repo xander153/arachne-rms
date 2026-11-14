@@ -11,7 +11,7 @@ const incidentBlockingCases=id=>db.cases.filter(c=>c.incidentIds.includes(id)&&[
 const incidentEditable=i=>!!i&&incidentBlockingCases(i.id).length===0&&(!incidentCase(i)||caseEditable(incidentCase(i)));
 function workEntry(c,status,assignedTo,note=''){c.workHistory=c.workHistory||[];c.workHistory.push({at:new Date().toISOString(),assignedTo:assignedTo||'',assignedBy:actor(),status,note})}
 function backToIncident(id){const c=incidentCase(find('incidents',id));if(c&&view.page==='case'&&view.id===c.id)show('case',c.id);else show('incident',id)}
-const incidentApproval=i=>{const cases=db.cases.filter(c=>c.incidentIds.includes(i.id));return cases.length&&cases.every(c=>caseReviewState(c)==='Approved')?'Approved':cases.some(c=>caseReviewState(c)==='Approved')?'Partially approved':'Not approved'};
+const incidentCaseReview=i=>{const states=[...new Set(db.cases.filter(c=>c.incidentIds.includes(i.id)).map(caseReviewState))];return states.length===0?'No case linked':states.length===1?states[0]:'Mixed statuses'};
 function requireCaseEdit(id){if(caseEditable(find('cases',id)))return true;flash('This case is unavailable or locked for review. A supervisor must reassign an approved case.',true);return false}
 function requireIncidentEdit(id){const i=find('incidents',id);if(incidentEditable(i))return true;flash('This incident is locked by its case, which is unavailable or pending/approved. A supervisor must return or reassign all affected cases before editing.',true);return false}
 function submitCase(id){
@@ -40,7 +40,7 @@ function reassignCase(id){
 }
 function fileCase(id){
  const c=find('cases',id);if(role!=='Records'||!c||caseReviewState(c)!=='Approved'||c.filingStatus!=='Ready for filing'){flash('Select a case ready for filing as the Records demo role.',true);return}
- const before=copy(db);c.filingStatus='Filed';c.reviewHistory=c.reviewHistory||[];c.reviewHistory.push({decision:'Filed',comment:'Sent to records filing.',actor:actor(),at:new Date().toISOString()});record('Filed case '+id);if(!persist()){db=before;return}render();flash('Case marked filed.')
+ const before=copy(db);c.filingStatus='Filed';c.reviewHistory=c.reviewHistory||[];c.reviewHistory.push({decision:'Filed',comment:'Sent to records filing.',actor:actor(),at:new Date().toISOString()});workEntry(c,'Filed',c.assignee,'Sent to records filing.');record('Filed case '+id);if(!persist()){db=before;return}render();flash('Case marked filed.')
 }
 function linkArrestToCase(caseId){
  if(!requireCaseEdit(caseId))return;

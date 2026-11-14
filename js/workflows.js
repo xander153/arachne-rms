@@ -11,10 +11,10 @@ function incidentWork(id){
 function arrestWork(id){
  const a=find('arrests',id);if(!a){flash('Arrest not found.',true);return}
  openDialog('Arrest assignment & work status',`<div class="fields">${selectField('assignee','Work assigned to',assigneeOptions(a.assignee),false)}${selectField('workStatus','Work status (not release status)',opts(['Open','Completed'].map(id=>({id,text:id})),a.workStatus||'Open'))}</div>`,'Save',f=>{
-  const previous=a.assignee||'',assignee=f.get('assignee'),previousStatus=a.workStatus||'Open';a.assignee=assignee;a.workStatus=f.get('workStatus');
-  if(previous!==assignee)record('Changed arrest '+id+' assignment from '+(previous||'Unassigned')+' to '+(assignee||'Unassigned'));
-  if(previousStatus!==a.workStatus)record('Changed arrest '+id+' work status from '+previousStatus+' to '+a.workStatus);
-  done('Arrest work updated.','arrest',id)
+  const before=copy(db),previous=a.assignee||'',assignee=f.get('assignee'),previousStatus=a.workStatus||'Open';a.assignee=assignee;a.workStatus=f.get('workStatus');
+  if(previous!==assignee){workEntry(a,'Record Reassigned',assignee,'Previously assigned to '+(previous||'Unassigned'));record('Changed arrest '+id+' assignment from '+(previous||'Unassigned')+' to '+(assignee||'Unassigned'))}
+  if(previousStatus!==a.workStatus){workEntry(a,'Work status: '+a.workStatus,assignee,'Previously '+previousStatus);record('Changed arrest '+id+' work status from '+previousStatus+' to '+a.workStatus)}
+  if(!persist()){db=before;return}closeDialog();show('arrest',id);flash('Arrest work updated.')
  })
 }
 function incidentForm(id){const x=id?find('incidents',id):null;if(id&&!requireIncidentEdit(id))return;const types=['Traffic Stop','Motor Vehicle Accident','Larceny','Robbery','Burglary / Breaking & Entering','Simple Assault','Motor Vehicle Theft','Vandalism / Damage of Property','Other'];const dispositions=['Citation Issued','Warning Issued','Report Taken'];openDialog(x?'Edit incident':'New incident',`<div class="fields">${selectField('type','Incident classification',opts(types.map(t=>({id:t,text:t})),x?.type))}${selectField('disposition','Incident disposition',opts(dispositions.map(id=>({id,text:id})),x?.disposition||'','Not set'),false)}${field('date','Incident date',x?.date||today(),'date')}${field('location','Location',x?.location||'')}${field('officer','Reporting officer',x?.officer||actor())}${textField('narrative','Incident description',x?.narrative||'',false)}</div><p class="small muted">Basic demo field checks only; no NIBRS validation or submission.</p>`,'Save incident',f=>{if(id&&!requireIncidentEdit(id))return;const data={type:f.get('type').trim(),disposition:f.get('disposition'),date:f.get('date'),location:f.get('location').trim(),officer:f.get('officer').trim(),narrative:f.get('narrative').trim()};if(!data.type||!data.location||!data.officer){flash('Complete the required fields.',true);return}let target;if(x){Object.assign(x,data);target=x.id;record('Updated incident '+target)}else{target=nextId('INC-DEMO-',db.incidents);db.incidents.unshift({id:target,...data,status:'Draft',people:[],vehicles:[],supplements:[],reviewComments:[]});record('Created incident '+target)}done('Incident saved.','incident',target)})}
@@ -115,7 +115,7 @@ function arrestForm(caseId,arrestId){
    const links=chosen.map(o=>{if(!o.offenseId)o.offenseId=nextId('OFF-',entries.filter(x=>x.offenseId).map(x=>({id:x.offenseId})));return {caseId,offenseId:o.offenseId}});
    const report=arrestFromCase(currentCase,personId,chosen,officer);
    if(extraCharge)report.charges=[...(report.charges||[]),{name:extraCharge}];
-   db.arrests.unshift({id,caseId,...values,assignee,workStatus:'Open',...(links.length?{offenseLinks:links}:{}),...(Object.keys(report).length?{report}:{})});record('Assigned arrest '+id+' to '+(assignee||'Unassigned'))
+   const arrest={id,caseId,...values,assignee,workStatus:'Open',...(links.length?{offenseLinks:links}:{}),...(Object.keys(report).length?{report}:{})};workEntry(arrest,'Initially Assigned',assignee);db.arrests.unshift(arrest);record('Assigned arrest '+id+' to '+(assignee||'Unassigned'))
   }
   record((existing?'Updated arrest ':'Recorded arrest ')+id+' for case '+caseId);
   if(!persist()){db=before;return}closeDialog();show('arrest',id);flash('Arrest saved.')
