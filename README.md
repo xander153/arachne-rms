@@ -20,13 +20,42 @@ Matching is a limited aid, not identity verification or a guarantee against
 duplicates. Evidence has one linked incident in this demo; it cannot be
 attached to a second incident.
 
+## Incident, case and arrest workflow
+
+An incident is the root record. Simple incidents (traffic stop, civil
+complaint, basic accident, etc.) stay incidents with no assignment. When an
+incident needs more (investigation, offenses, property, arrest), use **Find or
+create case** on it: the dialog lists the 10 most recent cases, has a search
+box for older ones, and a **Create new case** button. Creating a case needs no
+form. It is assigned to its creator, status Open, disposition Investigation
+Pending, with the incident type as its title, and its screen opens next.
+
+When a case is created (or an incident is linked to an existing case) the case
+takes over the incident. The incident's people, vehicles, property/evidence,
+incident description, supplements and attachments are shown on the case and are
+changed there; the incident screen becomes read-only and shows the same live
+data. Older snapshots are migrated so an incident with a case is managed by its
+first linked case. The case also has a workload history (initial assignment,
+reassignment, submission, approval or return) and an expandable **History
+lookup** of other incidents, cases, arrests and warrants for its locations,
+people and vehicles.
+
+When recording an arrest from a case, the person list is the people on the case
+(incident people and case report persons) and the charges are chosen from the
+case offenses. The arrest starts with the matching defendant details,
+associated persons, offense context and the selected offenses (as charges and
+offense assignments). These are copied once as starting values and can then be
+edited on the arrest. Case attachments, report fields and incident information
+remain live references on the arrest, in collapsible sections.
+
 ## Case review workflow
 
 Incident dispositions and case dispositions are separate. No-review incidents
 remain editable, including for a later fictional MV-104 attachment. Link people
 and vehicles to an incident, then set the owner and driver on each vehicle.
 
-Set a case disposition and submit it to a selected shift supervisor. Any demo
+Set a closing case disposition (not Investigation Pending) and submit it to a
+selected shift supervisor. Any demo
 supervisor may approve or return it. Approved cases go to the Records queue;
 the Records role can mark them filed. A supervisor can reassign an approved case
 for follow-up, after which it needs review again. Review and filing history is
@@ -36,18 +65,18 @@ incident are blocked while any linked case is pending or approved. Return or
 reassign all affected cases before editing it. Arrest records can be linked to
 multiple cases and remain independently editable.
 
-Cases show live people, vehicles (including owner and driver), evidence,
-narrative, supplements, and attachments from their linked incidents. Arrests
-show live information from every linked case and each distinct incident, not
-independent copies. Case-specific report fields and attachments respect the
+Cases show live people, vehicles (including owner and driver), property/evidence,
+incident description, supplements, and attachments from their linked incidents. Arrests
+show live information from every linked case and each distinct incident. Case-specific report fields and attachments respect the
 demo's restricted-case visibility rules. Changes to shared profiles and
 evidence remain visible; this is not a frozen historical snapshot.
 
 On an arrest, use **Assign offenses** for each editable linked case to select
 the case offenses attributed to that arrestee. Multiple offenses can be
 assigned to an arrest, and an offense can be assigned to multiple arrests.
-Assignments do not automatically create arrest charges; existing charges are
-independent and must be entered or updated separately. Assignments cannot be
+Offenses selected when the arrest is recorded are assigned and become charges
+automatically; later assignment changes do not change charges, which are
+independent and must be updated separately. Assignments cannot be
 changed while the case is pending review or approved. Remove an offense from
 all arrests before deleting it, and remove all assignments before changing an
 arrest's person. Older snapshots remain compatible; IDs are added to existing

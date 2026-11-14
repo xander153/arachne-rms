@@ -4,4 +4,4 @@ function closeDialog(){$('modal').hidden=true;$('dialog').innerHTML=''}
 function field(name,title,value='',type='text',required=true){return `<label>${esc(title)}<input name="${esc(name)}" type="${type}" value="${esc(value)}" ${required?'required':''}></label>`}
 function selectField(name,title,options,required=true){return `<label>${esc(title)}<select name="${esc(name)}" ${required?'required':''}>${options}</select></label>`}
 function textField(name,title,value='',required=true){return `<label class="wide">${esc(title)}<textarea name="${esc(name)}" ${required?'required':''}>${esc(value)}</textarea></label>`}
-function done(message,page,id){closeDialog();if(persist()){show(page,id);flash(message)}}
+function done(message,page,id){closeDialog();if(persist()){if(page==='incident')backToIncident(id);else show(page,id);flash(message)}}

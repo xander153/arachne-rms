@@ -5,3 +5,5 @@
 .brand img{display:block;width:100%;max-width:202px;height:auto;border-radius:8px}
 .nav button.subnav{padding-left:28px;font-size:13px}
 #supervisor-picker[hidden]{display:none}
+details.lookup{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 18px}details.lookup>summary{cursor:pointer;font-weight:600}.card details.lookup{margin-top:10px;padding:8px 14px;background:#0d1729}details.lookup .list strong{display:block;margin-top:8px;color:var(--muted);font-size:12px}
+input[type=checkbox]{width:auto}label.list-item{display:flex;gap:8px;align-items:center;color:var(--text);font-size:14px;font-weight:400}

@@ -73,7 +73,7 @@ function attachmentForm(kind,id){
   const currentTotal=[...db.incidents,...db.cases,...db.arrests].flatMap(x=>x.attachments||[]).reduce((sum,a)=>sum+a.size,0);
   if(currentTotal+file.size>maxTotalAttachmentBytes){flash('The demo attachment total would exceed 1 MB.',true);return}
   const before=copy(db);target.attachments=target.attachments||[];target.attachments.push({name:file.name,type:file.type,size:file.size,category,author:uploader,at:new Date().toISOString(),data:encoded});record('Added attachment to '+kind+' '+id);
-  if(!persist()){db=before;return}closeDialog();show(kind,id);flash('Fictional attachment saved.')
+  if(!persist()){db=before;return}closeDialog();if(kind==='incident')backToIncident(id);else show(kind,id);flash('Fictional attachment saved.')
  })
 }
 function attachmentAction(kind,id,index,remove){

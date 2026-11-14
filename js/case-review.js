@@ -1,19 +1,25 @@
 'use strict';
-const caseDispositions=['Closed by Investigation','Closed by Arrest'];
+const pendingDisposition='Investigation Pending';
+const closingDispositions=['Closed by Investigation','Closed by Arrest'];
+const caseDispositions=[pendingDisposition,...closingDispositions];
 const caseReviewState=c=>c.reviewState||'Not submitted';
 const arrestCaseIds=a=>a.caseIds||[a.caseId];
 const caseEditable=c=>!!c&&canViewInvestigation(c)&&!['Pending review','Approved'].includes(caseReviewState(c));
+// The case that has taken over an incident; incident data is then maintained from that case.
+const incidentCase=i=>i&&i.caseId?find('cases',i.caseId)||null:null;
 const incidentBlockingCases=id=>db.cases.filter(c=>c.incidentIds.includes(id)&&['Pending review','Approved'].includes(caseReviewState(c)));
-const incidentEditable=i=>!!i&&incidentBlockingCases(i.id).length===0;
+const incidentEditable=i=>!!i&&incidentBlockingCases(i.id).length===0&&(!incidentCase(i)||caseEditable(incidentCase(i)));
+function workEntry(c,status,assignedTo,note=''){c.workHistory=c.workHistory||[];c.workHistory.push({at:new Date().toISOString(),assignedTo:assignedTo||'',assignedBy:actor(),status,note})}
+function backToIncident(id){const c=incidentCase(find('incidents',id));if(c&&view.page==='case'&&view.id===c.id)show('case',c.id);else show('incident',id)}
 const incidentApproval=i=>{const cases=db.cases.filter(c=>c.incidentIds.includes(i.id));return cases.length&&cases.every(c=>caseReviewState(c)==='Approved')?'Approved':cases.some(c=>caseReviewState(c)==='Approved')?'Partially approved':'Not approved'};
 function requireCaseEdit(id){if(caseEditable(find('cases',id)))return true;flash('This case is unavailable or locked for review. A supervisor must reassign an approved case.',true);return false}
-function requireIncidentEdit(id){const i=find('incidents',id);if(incidentEditable(i))return true;flash('This incident is protected by pending or approved cases. A supervisor must return or reassign all affected cases before editing.',true);return false}
+function requireIncidentEdit(id){const i=find('incidents',id);if(incidentEditable(i))return true;flash('This incident is locked by its case, which is unavailable or pending/approved. A supervisor must return or reassign all affected cases before editing.',true);return false}
 function submitCase(id){
  const c=find('cases',id);if(!requireCaseEdit(id))return;
- if(!caseDispositions.includes(c.disposition)){flash('Choose a case disposition before submitting for review.',true);return}
+ if(!closingDispositions.includes(c.disposition)){flash('Choose a closing case disposition (not Investigation Pending) before submitting for review.',true);return}
  openDialog('Submit case for review',`<p class="muted">Select the supervisor working the shift. Any supervisor may review this case.</p><div class="fields">${selectField('supervisor','Shift supervisor',opts(supervisors.map(id=>({id,text:id})),c.reviewAssignee||''))}</div>`,'Submit',f=>{
   if(!requireCaseEdit(id))return;const reviewer=f.get('supervisor');if(!supervisors.includes(reviewer)){flash('Select a supervisor.',true);return}
-  const before=copy(db);c.reviewState='Pending review';c.reviewAssignee=reviewer;c.filingStatus='';c.status='Closed';record('Submitted case '+id+' to '+reviewer+' for review');if(!persist()){db=before;return}closeDialog();show('case',id);flash('Case submitted for review.')
+  const before=copy(db);c.reviewState='Pending review';c.reviewAssignee=reviewer;c.filingStatus='';c.status='Closed';workEntry(c,'Submitted for Review',reviewer);record('Submitted case '+id+' to '+reviewer+' for review');if(!persist()){db=before;return}closeDialog();show('case',id);flash('Case submitted for review.')
  })
 }
 function decideCase(id){
@@ -21,7 +27,7 @@ function decideCase(id){
  openDialog('Review case '+id,`<p class="muted">Assigned supervisor: ${esc(c.reviewAssignee||'Unassigned')}. Any supervisor may decide.</p><div class="fields">${selectField('decision','Decision',opts([{id:'Approved',text:'Approve'},{id:'Returned',text:'Return for correction'}]))}${textField('comment','Review comment')}</div>`,'Save decision',f=>{
   if(role!=='Supervisor'||caseReviewState(c)!=='Pending review'){flash('The case is no longer available for review.',true);return}
   const decision=f.get('decision'),comment=f.get('comment').trim();if(!['Approved','Returned'].includes(decision)||!comment){flash('Select a decision and enter a comment.',true);return}
-  const before=copy(db);c.reviewState=decision;c.filingStatus=decision==='Approved'?'Ready for filing':'';c.reviewHistory=c.reviewHistory||[];c.reviewHistory.push({decision,comment,actor:actor(),at:new Date().toISOString()});record(decision+' case '+id);if(!persist()){db=before;return}closeDialog();show('case',id);flash('Case '+decision.toLowerCase()+'.')
+  const before=copy(db);c.reviewState=decision;c.filingStatus=decision==='Approved'?'Ready for filing':'';c.reviewHistory=c.reviewHistory||[];c.reviewHistory.push({decision,comment,actor:actor(),at:new Date().toISOString()});workEntry(c,decision==='Approved'?'Record Approved':'Returned for Correction',c.assignee,comment);record(decision+' case '+id);if(!persist()){db=before;return}closeDialog();show('case',id);flash('Case '+decision.toLowerCase()+'.')
  })
 }
 function reassignCase(id){
@@ -29,7 +35,7 @@ function reassignCase(id){
  openDialog('Reassign approved case',`<p class="muted">The case will require another review; any prior filing remains in history.</p><div class="fields">${selectField('assignee','Assigned to',assigneeOptions(c.assignee))}${textField('comment','Follow-up reason')}</div>`,'Reassign',f=>{
   if(role!=='Supervisor'||caseReviewState(c)!=='Approved'){flash('This case is no longer available for reassignment.',true);return}
   const assignee=f.get('assignee'),comment=f.get('comment').trim();if(!assignee||!comment){flash('Select an assignee and enter a reason.',true);return}
-  const before=copy(db);c.reviewState='Follow-up';c.status='Open';c.assignee=assignee;c.filingStatus='';c.reviewHistory=c.reviewHistory||[];c.reviewHistory.push({decision:'Follow-up',comment,actor:actor(),at:new Date().toISOString()});record('Reassigned approved case '+id+' to '+assignee);if(!persist()){db=before;return}closeDialog();show('case',id);flash('Case reassigned for follow-up.')
+  const before=copy(db);c.reviewState='Follow-up';c.status='Open';c.assignee=assignee;c.filingStatus='';c.reviewHistory=c.reviewHistory||[];c.reviewHistory.push({decision:'Follow-up',comment,actor:actor(),at:new Date().toISOString()});workEntry(c,'Follow-Up After Approval',assignee,comment);record('Reassigned approved case '+id+' to '+assignee);if(!persist()){db=before;return}closeDialog();show('case',id);flash('Case reassigned for follow-up.')
  })
 }
 function fileCase(id){
@@ -68,6 +74,6 @@ function vehicleParticipants(incidentId,vehicleId){
  const choices=incident.people.map(p=>p.id).filter((id,index,all)=>all.indexOf(id)===index).map(id=>({id,text:label('people',id)+' · '+id}));
  openDialog('Vehicle owner and driver',`<p class="muted">Select people already linked to this incident. Leave blank when unknown.</p><div class="fields">${selectField('owner','Owner',opts(choices,existing.ownerId||'','Unknown'),false)}${selectField('driver','Driver',opts(choices,existing.driverId||'','Unknown'),false)}</div>`,'Save',f=>{
   if(!requireIncidentEdit(incidentId))return;const owner=f.get('owner'),driver=f.get('driver');if([owner,driver].some(id=>id&&!incident.people.some(p=>p.id===id))){flash('Select people linked to this incident.',true);return}
-  const before=copy(db);incident.vehicleParticipants=(incident.vehicleParticipants||[]).filter(x=>x.vehicleId!==vehicleId);incident.vehicleParticipants.push({vehicleId,ownerId:owner,driverId:driver});record('Updated incident vehicle participants for '+vehicleId+' on '+incidentId);if(!persist()){db=before;return}closeDialog();show('incident',incidentId);flash('Vehicle participants saved.')
+  const before=copy(db);incident.vehicleParticipants=(incident.vehicleParticipants||[]).filter(x=>x.vehicleId!==vehicleId);incident.vehicleParticipants.push({vehicleId,ownerId:owner,driverId:driver});record('Updated incident vehicle participants for '+vehicleId+' on '+incidentId);if(!persist()){db=before;return}closeDialog();backToIncident(incidentId);flash('Vehicle participants saved.')
  })
 }
