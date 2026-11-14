@@ -43,6 +43,17 @@ reassignment, submission, approval or return) and an expandable **History
 lookup** of other incidents, cases, arrests and warrants for its locations,
 people and vehicles.
 
+Case-specific vehicle and property fields are edited on the linked items.
+Older standalone report entries remain available as unlinked older entries.
+Property/evidence can be general or serialized; serialized items require a
+serial number or VIN. An impounded vehicle can have a separate custody entry
+linked to a vehicle already on the incident.
+
+The main case narrative and each supplemental narrative can be edited only by
+their recorded author while the case is unlocked. Supplements appear below the
+main narrative. For older case narratives without an author, the current case
+assignee is treated as the author.
+
 When recording an arrest from a case, the person list is the people on the case
 (incident people and case report persons) and the charges are chosen from the
 case offenses. The arrest starts with the matching defendant details,
@@ -60,15 +71,17 @@ Incident dispositions and case dispositions are separate. No-review incidents
 remain editable, including for a later fictional MV-104 attachment. Link people
 and vehicles to an incident, then set the owner and driver on each vehicle.
 
-Set a closing case disposition (not Investigation Pending) and submit it to a
-selected shift supervisor. Any demo
-supervisor may approve or return it. Approved cases go to the Records queue;
-the Records role can mark them filed. A supervisor can reassign an approved case
-for follow-up, after which it needs review again. Review and filing history is
-retained. A case pending review or approved is not editable. Changes to a shared
-incident are blocked while any linked case is pending or approved. Return or
-reassign all affected cases before editing it. Arrest records can be linked to
-multiple cases and remain independently editable.
+Submit a case to a selected shift supervisor, even while its disposition is
+Investigation Pending. Any demo supervisor may return it for correction, send
+it to the detective division queue, or approve it for Records with a closing
+disposition. A detective can claim a queued case, investigate, and submit it
+for review again. Approved cases go to the Records queue, where the Records
+role can mark them filed. A supervisor can reassign an approved case for
+follow-up, after which it needs review again. Review, assignment, and filing
+history is retained. A case pending review, approved, or in the detective queue
+is not editable. Changes to a shared incident are blocked while any linked case
+is in one of those states. Resolve all affected cases before editing it. Arrest
+records can be linked to multiple cases and remain independently editable.
 
 Cases show live people, vehicles (including owner and driver), property/evidence,
 incident description, supplements, and attachments from their linked incidents. Arrests
@@ -82,7 +95,7 @@ assigned to an arrest, and an offense can be assigned to multiple arrests.
 Offenses selected when the arrest is recorded are assigned and become charges
 automatically; later assignment changes do not change charges, which are
 independent and must be updated separately. Assignments cannot be
-changed while the case is pending review or approved. Remove an offense from
+changed while the case is pending review, approved, or in the detective queue. Remove an offense from
 all arrests before deleting it, and remove all assignments before changing an
 arrest's person. Older snapshots remain compatible; IDs are added to existing
 offenses when they are first assigned.

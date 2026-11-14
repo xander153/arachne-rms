@@ -3,14 +3,14 @@ const duplicateTypes = {
  people:{label:'person',fields:p=>[p.id,p.name,p.dob,p.aliases,p.description],describe:p=>`${p.name} · ${p.id} · DOB ${p.dob||'not recorded'} · ${p.aliases||'no aliases'}`,page:'person'},
  vehicles:{label:'vehicle',fields:v=>[v.id,v.description,v.plate],describe:v=>`${v.id} · ${v.description} · ${v.plate}`,page:'vehicle'},
  cases:{label:'case',fields:c=>[c.id,c.title,...c.incidentIds],describe:c=>`${c.id} · ${c.title} · ${c.incidentIds.join(', ')}`,page:'case'},
- evidence:{label:'evidence item',fields:e=>[e.id,e.name,e.incidentId,e.custodian,e.location],describe:e=>`${e.id} · ${e.name} · ${e.incidentId}`,page:'evidence-detail'}
+ evidence:{label:'evidence item',fields:e=>[e.id,e.name,e.serialNumber,e.incidentId,e.custodian,e.location],describe:e=>`${e.id} · ${e.name}${e.serialNumber?' · '+e.serialNumber:''} · ${e.incidentId}`,page:'evidence-detail'}
 };
 const normalizeMatch = value => String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 function possibleDuplicates(title,f){
  const same=(a,b)=>normalizeMatch(a)&&normalizeMatch(a)===normalizeMatch(b);
  if(title==='New person')return db.people.filter(p=>same(p.name,f.get('name'))||(f.get('dob')&&p.dob===f.get('dob'))||same(p.aliases,f.get('name'))).map(duplicateTypes.people.describe);
  if(title==='New vehicle')return db.vehicles.filter(v=>same(v.plate,f.get('plate'))).map(duplicateTypes.vehicles.describe);
- if(title==='Register evidence')return db.evidence.filter(e=>e.incidentId===f.get('incident')&&same(e.name,f.get('name'))).map(duplicateTypes.evidence.describe);
+ if(title==='Register evidence')return db.evidence.filter(e=>(e.incidentId===f.get('incident')&&same(e.name,f.get('name')))||same(e.serialNumber,f.get('serialNumber'))).map(duplicateTypes.evidence.describe);
  return [];
 }
 function confirmDuplicates(title,f){

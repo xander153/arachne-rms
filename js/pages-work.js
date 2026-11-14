@@ -15,6 +15,7 @@ function workload(){
   {id:'tasks',title:'Open follow-up tasks',items:db.tasks.filter(t=>t.assignee===name&&t.status==='Open'&&(!t.caseId||canViewInvestigation(find('cases',t.caseId)))),rows:taskTable}
  ];
  if(role==='Supervisor')groups.push({id:'reviews',title:'Assigned reviews',items:db.cases.filter(c=>caseReviewState(c)==='Pending review'&&c.reviewAssignee===name),rows:reviewTable,kind:'case'});
+ if(role==='Detective')groups.push({id:'detective-queue',title:'Detective division queue',items:db.cases.filter(c=>caseReviewState(c)==='Detective queue'&&canViewInvestigation(c)),rows:caseRows,kind:'case'});
  if(supervisor)groups.push({id:'unassigned-cases',title:'Unassigned open cases',items:db.cases.filter(c=>!c.assignee&&c.status==='Open'),rows:caseRows,kind:'case'},{id:'unassigned-arrests',title:'Unassigned open arrests',items:db.arrests.filter(a=>!a.assignee&&(a.workStatus||'Open')==='Open'),rows:arrestTable,kind:'arrest'});
  const selected=groups.find(g=>g.id===workloadTab)||groups[0];
  if(selected.kind)sequence(selected.kind,selected.items);

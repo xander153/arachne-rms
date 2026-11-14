@@ -7,6 +7,8 @@ function reportRecord(kind,id){
 function reportView(kind,item,editable=true){
  const sections=reportSections[kind],report=item.report||{};
  const content=sections.map(section=>{
+  const legacyLinked=kind==='case'&&['vehicles','property'].includes(section.id);
+  if(legacyLinked&&!(report[section.id]||[]).length)return '';
   const entries=section.multiple?(report[section.id]||[]):[report[section.id]||{}];
   const rows=entries.map((entry,index)=>{
    const values=section.fields.filter(([key])=>entry[key]).map(([key,title,type])=>`<div class="list-item"><strong>${esc(title)}:</strong> ${type==='person'?link('person',entry[key],label('people',entry[key])):esc(entry[key])}</div>`).join('');
@@ -14,27 +16,50 @@ function reportView(kind,item,editable=true){
    const controls=editable&&section.multiple?`<div class="actions no-print">${btn('edit-report-entry','Edit',`data-kind="${kind}" data-id="${esc(item.id)}" data-section="${section.id}" data-index="${index}"`)}${btn('delete-report-entry','Remove',`data-kind="${kind}" data-id="${esc(item.id)}" data-section="${section.id}" data-index="${index}"`)}</div>`:'';
    return `<div class="list-item">${section.multiple?`<strong>Entry ${index+1}</strong>`:''}<div class="list">${values||'<div class="muted">No values recorded.</div>'}${assigned?`<div class="list-item"><strong>Assigned arrests:</strong> ${assigned}</div>`:''}</div>${controls}</div>`;
   }).join('')||'<p class="empty">No entries recorded.</p>';
-  const action=editable?btn('edit-report-entry',section.multiple?'Add entry':'Edit section',`data-kind="${kind}" data-id="${esc(item.id)}" data-section="${section.id}"`):'';
-  return panel(section.title,`<div class="list">${rows}</div>`,action);
+  const narrativeAuthor=kind==='case'&&section.id==='narrative'?(item.narrativeAuthor||(report.narrative?.text?item.assignee:'')):'';
+  const action=editable&&!legacyLinked&&(!narrativeAuthor||narrativeAuthor===actor())?btn('edit-report-entry',section.multiple?'Add entry':'Edit section',`data-kind="${kind}" data-id="${esc(item.id)}" data-section="${section.id}"`):'';
+  const supplements=kind==='case'&&section.id==='narrative'?item.incidentIds.map(id=>{const i=find('incidents',id);return i?supplementsPanel(i,editable&&incidentCase(i)?.id===item.id&&incidentEditable(i)):''}).join(''):'';
+  return panel(legacyLinked?'Unlinked older entries · '+section.title:section.title,`${legacyLinked?'<p class="small muted">Older entries are retained here; add new case details to linked items above.</p>':''}${narrativeAuthor?`<p class="small muted">Author: ${esc(narrativeAuthor)}</p>`:''}<div class="list">${rows}</div>`,action)+supplements;
  }).join('');
  return `<h2>${kind==='case'?'Case':'Arrest'} report fields${editable?'':' (read-only)'}</h2><p class="muted small">Based on the supplied ${kind==='case'?'DCJS-3205 (11/06)':'DCJS-3203 (4/94)'} example. Illustrative only; not an official form, validation, signature, or submission. Social Security numbers and signatures are not captured. Fields here are report-specific; linked incident and person data remain live and are not copied.</p>${content}`;
+}
+function caseItemDetails(c,sectionId,itemId,editable){
+ if(!c||!canViewInvestigation(c))return '';
+ const section=reportSections.case.find(s=>s.id===sectionId),entry=c.itemDetails?.[sectionId]?.[itemId]||{};
+ const values=section.fields.filter(([key])=>entry[key]).map(([key,title])=>`${esc(title)}: ${esc(entry[key])}`).join(' · ');
+ return `<div class="small muted">${values||'No case-specific details.'}</div>${editable?btn('edit-case-item','Edit case details',`data-id="${esc(c.id)}" data-section="${sectionId}" data-item-id="${esc(itemId)}"`):''}`;
+}
+function caseItemForm(caseId,sectionId,itemId){
+ const c=find('cases',caseId),section=reportSections.case.find(s=>s.id===sectionId&&['vehicles','property'].includes(s.id));
+ const isLinked=()=>sectionId==='vehicles'?c.incidentIds.some(id=>find('incidents',id)?.vehicles.includes(itemId)):db.evidence.some(e=>e.id===itemId&&c.incidentIds.includes(e.incidentId));
+ if(!c||!section||!requireCaseEdit(caseId)||!isLinked()){flash('This case item is unavailable.',true);return}
+ const entry=c.itemDetails?.[sectionId]?.[itemId]||{},fields=section.fields.map(([key,title,type])=>type==='textarea'?textField(key,title,entry[key]||'',false):field(key,title,entry[key]||'',type||'text',false)).join('');
+ openDialog('Edit case details · '+itemId,`<div class="fields">${fields}</div><p class="small muted">These fields apply to this item in this case; the linked record remains shared.</p>`,'Save details',f=>{
+  if(!requireCaseEdit(caseId)||!isLinked())return;
+  const values=Object.fromEntries(section.fields.map(([key])=>[key,String(f.get(key)||'').trim()])),before=copy(db);
+  c.itemDetails=c.itemDetails||{};c.itemDetails[sectionId]=c.itemDetails[sectionId]||{};c.itemDetails[sectionId][itemId]=values;record('Updated case '+caseId+' details for '+itemId);
+  if(!persist()){db=before;return}closeDialog();show('case',caseId);flash('Case details saved.')
+ })
 }
 function reportEntryForm(kind,id,sectionId,index){
  const item=reportRecord(kind,id),section=reportSections[kind]?.find(s=>s.id===sectionId);if(!item||!section)return;
  if(kind==='case'&&!requireCaseEdit(id))return;
+ if(kind==='case'&&sectionId==='narrative'&&(item.narrativeAuthor||(item.report?.narrative?.text?item.assignee:''))&&(item.narrativeAuthor||(item.report?.narrative?.text?item.assignee:''))!==actor()){flash('Only the author may edit the case narrative.',true);return}
  const entries=(item.report||{})[sectionId],editing=index!==undefined&&index!=='';
  const entry=section.multiple?(editing?(entries||[])[Number(index)]:{}):(entries||{});
  if(!entry){flash('Report entry not found.',true);return}
  const fields=section.fields.map(([key,title,type])=>type==='textarea'?textField(key,title,entry[key]||'',false):type==='person'?selectField(key,title,opts(db.people.map(p=>({id:p.id,text:p.name+' · '+p.id})),entry[key]||'','None'),false):field(key,title,entry[key]||'',type||'text',false)).join('');
  const lawLookup=(kind==='case'&&sectionId==='offenses')||(kind==='arrest'&&sectionId==='charges');
  openDialog((editing?'Edit ':section.multiple?'Add ':'Edit ')+section.title,`${lawLookup?lawLookupMarkup():''}<div class="fields">${fields}</div><p class="muted small">Fictional data only. Linked person fields show current person information; other fields are specific to this report.</p>`,'Save section',f=>{
-  if(!reportRecord(kind,id)||(kind==='case'&&!requireCaseEdit(id)))return;
+  const current=reportRecord(kind,id);if(!current||(kind==='case'&&!requireCaseEdit(id)))return;
+  if(kind==='case'&&sectionId==='narrative'&&(current.narrativeAuthor||(current.report?.narrative?.text?current.assignee:''))&&(current.narrativeAuthor||(current.report?.narrative?.text?current.assignee:''))!==actor()){flash('Only the author may edit the case narrative.',true);return}
   const values=Object.fromEntries(section.fields.map(([key])=>[key,String(f.get(key)||'').trim()]));
   if(section.multiple&&!Object.values(values).some(Boolean)){flash('Enter at least one value.',true);return}
   if(values.person&&!find('people',values.person)){flash('Select a valid demo person.',true);return}
   if(sectionId==='header'&&values.occurredFrom&&values.occurredTo&&values.occurredFrom>values.occurredTo){flash('Occurred to must not be before occurred from.',true);return}
   if(kind==='case'&&sectionId==='offenses'&&entry.offenseId)values.offenseId=entry.offenseId;
   const before=copy(db),target=find(kind==='case'?'cases':'arrests',id);target.report=target.report||{};
+  if(kind==='case'&&sectionId==='narrative'&&!target.narrativeAuthor)target.narrativeAuthor=actor();
   if(section.multiple){target.report[sectionId]=target.report[sectionId]||[];if(editing)target.report[sectionId][Number(index)]=values;else target.report[sectionId].push(values)}else target.report[sectionId]=values;
   record('Updated '+kind+' '+id+' report section '+section.title);
   if(!persist()){db=before;return}closeDialog();show(kind,id);flash('Report section saved.')

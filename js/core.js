@@ -48,7 +48,7 @@ const actor = () => role==='Supervisor'?supervisorIdentity:({Officer:'Officer J.
 const supervisorFor = officer => {const assignments=db.supervision||defaultSupervision;return Object.prototype.hasOwnProperty.call(assignments,officer)?assignments[officer]:''};
 const demoPeople = ['Officer J. Miller','Detective A. Chen','Supervisor R. Patel','Administrator'];
 const assigneeOptions = (selected='') => opts([...new Set([...demoPeople,...(selected?[selected]:[])])].map(id=>({id,text:id})),selected,'Unassigned');
-const canViewInvestigation = c => c.access!=='Restricted'||role==='Supervisor'||role==='Administrator'||(c.accessUsers||[]).includes(actor());
+const canViewInvestigation = c => c.access!=='Restricted'||role==='Supervisor'||role==='Administrator'||(role==='Detective'&&c.reviewState==='Detective queue')||(c.accessUsers||[]).includes(actor());
 const reportSections = {
  case: [
   {id:'header',title:'Report and occurrence',fields:[['agency','Agency'],['division','Division / precinct'],['ori','ORI'],['reportType','Original / supplement'],['reported','Date and time reported','datetime-local'],['occurredFrom','Occurred from','datetime-local'],['occurredTo','Occurred to','datetime-local'],['incidentType','Incident type'],['business','Business name'],['weapons','Weapons'],['address','Incident address'],['cityStateZip','City, state, ZIP'],['locationCode','Location code'],['victimCount','Number of victims','number'],['suspectCount','Number of suspects','number'],['victimAlsoComplainant','Victim also complainant']]},
@@ -110,7 +110,14 @@ function indexSearch(kind,title,placeholder,items,renderer){
  return form+(q?paginate(kind,items.filter(x=>renderer.match(x).some(value=>String(value??'').toLowerCase().includes(q))),renderer.rows):'<p class="empty">Enter a search term to find records.</p>');
 }
 function opts(items,selected='',placeholder='Select...'){return `<option value="">${esc(placeholder)}</option>`+items.map(x=>`<option value="${esc(x.id)}" ${x.id===selected?'selected':''}>${esc(x.text)}</option>`).join('')}
-function show(page,id=null,query=''){if(page==='search'&&(view.page!=='search'||view.query!==query))for(const key of Object.keys(pages))if(key.startsWith('search-'))delete pages[key];view={page,id,query};render();window.scrollTo(0,0)}
+function show(page,id=null,query=''){
+ const same=view.page===page&&view.id===id&&view.query===query,scrollX=window.scrollX,scrollY=window.scrollY;
+ if(page==='search'&&(view.page!=='search'||view.query!==query))for(const key of Object.keys(pages))if(key.startsWith('search-'))delete pages[key];
+ if(!same)history.replaceState({...history.state,arakne:{view:{...view},scrollX,scrollY}},'');
+ view={page,id,query};
+ if(!same)history.pushState({arakne:{view:{...view},scrollX:0,scrollY:0}},'');
+ render();window.scrollTo(same?scrollX:0,same?scrollY:0)
+}
 function renderNav(){$('nav').innerHTML=navItems.map(([id,text])=>`<button data-action="navigate" data-page="${id}" class="${id==='arrests'?'subnav ':''}${view.page===id||(id==='arrests'&&view.page==='arrest')?'active':''}" ${view.page===id||(id==='arrests'&&view.page==='arrest')?'aria-current="page"':''}>${esc(text)}</button>`).join('')}
-function render(){displayedSequences={};renderNav();const views={dashboard,workload,daily,incidents,incident,cases,case:caseDetail,arrests,arrest,people,person,vehicles,vehicle,evidence,'evidence-detail':evidenceDetail,warrants,warrant,review,filing,tasks,analytics,audit,settings,search};$('app').innerHTML=views[view.page]();$('role').value=role;$('supervisor-picker').hidden=role!=='Supervisor';$('supervisor').value=supervisorIdentity}
+function render(){const scrollX=window.scrollX,scrollY=window.scrollY;displayedSequences={};renderNav();const views={dashboard,workload,daily,incidents,incident,cases,case:caseDetail,arrests,arrest,people,person,vehicles,vehicle,evidence,'evidence-detail':evidenceDetail,warrants,warrant,review,filing,tasks,analytics,audit,settings,search};$('app').innerHTML=views[view.page]();$('role').value=role;$('supervisor-picker').hidden=role!=='Supervisor';$('supervisor').value=supervisorIdentity;window.scrollTo(scrollX,scrollY)}
 function listEvents(items){return items.length?`<div class="list timeline">${items.map(x=>`<div class="list-item"><div>${esc(x.action)}</div><div class="muted small">${esc(x.actor)} &middot; ${esc(stamp(x.at))}</div></div>`).join('')}</div>`:'<p class="empty">No activity yet.</p>'}

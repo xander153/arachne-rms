@@ -14,6 +14,9 @@ document.addEventListener('click',e=>{
  if(action==='case-submit'){e.stopImmediatePropagation();submitCase(id)}
  else if(action==='case-decision'){e.stopImmediatePropagation();decideCase(id)}
  else if(action==='case-reassign'){e.stopImmediatePropagation();reassignCase(id)}
+ else if(action==='case-claim'){e.stopImmediatePropagation();claimDetectiveCase(id)}
+ else if(action==='edit-supplement'){e.stopImmediatePropagation();supplement(id,b.dataset.index)}
+ else if(action==='edit-case-item'){e.stopImmediatePropagation();caseItemForm(id,b.dataset.section,b.dataset.itemId)}
  else if(action==='file-case'){e.stopImmediatePropagation();fileCase(id)}
  else if(action==='link-arrest'){e.stopImmediatePropagation();linkArrestToCase(id)}
  else if(action==='assign-case-offenses'){e.stopImmediatePropagation();assignCaseOffenses(id,b.dataset.caseId)}
@@ -34,3 +37,5 @@ $('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeDialog()})
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('modal').hidden)closeDialog()});
 $('import-file').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{const parsed=JSON.parse(await file.text());if(!validSnapshot(parsed))throw new Error('Invalid or incompatible demo snapshot');if(!confirm('Replace all current demo records with this snapshot?'))return;adoptLegacyIncidents(parsed);db=parsed;if(db.arrests===undefined)db.arrests=[];if(persist()){show('dashboard');flash('Demo snapshot imported.')}}catch(error){flash('Import failed: '+error.message,true)}});
 load();render();
+history.replaceState({...history.state,arakne:{view:{...view},scrollX:window.scrollX,scrollY:window.scrollY}},'');
+window.addEventListener('popstate',e=>{if(!e.state?.arakne)return;closeDialog();view=e.state.arakne.view;render();window.scrollTo(e.state.arakne.scrollX,e.state.arakne.scrollY)});
